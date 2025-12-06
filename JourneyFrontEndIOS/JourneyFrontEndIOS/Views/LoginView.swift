@@ -56,23 +56,46 @@ struct LoginView: View {
 
     private func handleLogin() async {
         guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Please enter email and password."
+            await MainActor.run { errorMessage = "Please enter email and password." }
             return
         }
 
-        isLoading = true
-        errorMessage = nil
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
+
+        print("[LoginView] handleLogin tapped for email=\(email)")
         do {
             try await APIClient.shared.login(email: email, password: password)
+
+            // Debug: check token saved
+            let saved = UserDefaults.standard.string(forKey: "authToken")
+            if let s = saved {
+                let prefix = s.count > 6 ? String(s.prefix(6)) + "…" : s
+                print("[LoginView] token in UserDefaults after login: len=\(s.count) prefix=\(prefix)")
+            } else {
+                print("[LoginView] token NOT found in UserDefaults after login")
+            }
+
             await MainActor.run {
                 appState.setLoggedIn(true)
-                // After login, backend can tell us if journey exists later
+                password = ""
+                errorMessage = nil
+                isLoading = false
             }
         } catch {
-            await MainActor.run {
-                errorMessage = "Login failed. Check your credentials."
+            let message: String
+            if let apiErr = error as? APIError, let desc = apiErr.errorDescription {
+                message = desc
+            } else {
+                message = error.localizedDescription
             }
+            await MainActor.run {
+                errorMessage = "Login failed: \(message)"
+                isLoading = false
+            }
+            print("[LoginView] login failed: \(message)")
         }
-        isLoading = false
     }
 }

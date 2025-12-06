@@ -15,9 +15,8 @@ struct RootView: View {
         Group {
             if !appState.isLoggedIn {
                 LoginView()
-            } else if !appState.hasActiveJourney {
-                JourneySelectionView()
             } else {
+                // User is logged in — show home (or selection if you implement separate flow)
                 JourneyHomeView()
             }
         }
