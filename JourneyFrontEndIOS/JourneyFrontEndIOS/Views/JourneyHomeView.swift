@@ -23,9 +23,9 @@ struct JourneyHomeView: View {
 
                 Text(String(format: "%.1f / %.1f miles", journey.distanceCompletedMiles, journey.totalDistanceMiles))
 
-                Text(String(format: "%.1f%% complete", journey.percentComplete))
+                Text(String(format: "%.0f%% complete", journey.percentComplete * 100))
 
-                ProgressView(value: journey.percentComplete / 100.0)
+                ProgressView(value: journey.percentComplete)
 
                 if let lastDate = journey.lastActivityDate {
                     Text("Last activity: \(lastDate.formatted(date: .abbreviated, time: .omitted))")
