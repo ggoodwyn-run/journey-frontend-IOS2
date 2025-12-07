@@ -209,7 +209,8 @@ final class APIClient {
         var dict: [String: Any] = [
             "distance_miles": requestBody.distanceMiles,
             "date": fmt.string(from: requestBody.date),
-            "activity_type": requestBody.activityType
+            "activity_type": requestBody.activityType,
+            "journey_id": requestBody.journeyId
         ]
         if let mood = requestBody.moodRating { dict["mood_rating"] = mood }
 
@@ -230,5 +231,63 @@ final class APIClient {
         let runResponse = try decoder.decode(RunResponse.self, from: data)
         print("[APIClient] createRun succeeded")
         return runResponse
+    }
+
+
+    func fetchAllJourneys() async throws -> [JourneyRead] {
+        let request = try makeAuthedRequest(path: "api/v1/journeys")
+        let session = sessionPreservingAuthorization(request.value(forHTTPHeaderField: "Authorization"))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard http.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8)
+            if http.statusCode == 401 { throw APIError.authenticationRequired(message: body) }
+            throw APIError.serverError(statusCode: http.statusCode, message: body)
+        }
+        return try decoder.decode([JourneyRead].self, from: data)
+    }
+
+    func createJourney(_ requestBody: JourneyCreateRequest) async throws -> JourneyCreateResponse {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+        let body = try encoder.encode(requestBody)
+        let request = try makeAuthedRequest(path: "api/v1/journeys", method: "POST", body: body)
+        let session = sessionPreservingAuthorization(request.value(forHTTPHeaderField: "Authorization"))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if !(200...299).contains(http.statusCode) {
+            let bodyString = String(data: data, encoding: .utf8)
+            if http.statusCode == 401 { throw APIError.authenticationRequired(message: bodyString) }
+            throw APIError.serverError(statusCode: http.statusCode, message: bodyString)
+        }
+        let journeyResponse = try decoder.decode(JourneyCreateResponse.self, from: data)
+        return journeyResponse
+    }
+
+    func deleteJourney(_ journeyId: Int) async throws {
+        let request = try makeAuthedRequest(path: "api/v1/journeys/\(journeyId)", method: "DELETE")
+        let session = sessionPreservingAuthorization(request.value(forHTTPHeaderField: "Authorization"))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200...299).contains(http.statusCode) else {
+            let bodyString = String(data: data, encoding: .utf8)
+            if http.statusCode == 401 { throw APIError.authenticationRequired(message: bodyString) }
+            throw APIError.serverError(statusCode: http.statusCode, message: bodyString)
+        }
+    }
+}
+extension APIClient {
+    func fetchJourneyProgress(_ journeyId: Int) async throws -> JourneyWithProgress {
+        let request = try makeAuthedRequest(path: "api/v1/journeys/\(journeyId)")
+        let session = sessionPreservingAuthorization(request.value(forHTTPHeaderField: "Authorization"))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if !(200...299).contains(http.statusCode) {
+            let bodyString = String(data: data, encoding: .utf8)
+            if http.statusCode == 401 { throw APIError.authenticationRequired(message: bodyString) }
+            throw APIError.serverError(statusCode: http.statusCode, message: bodyString)
+        }
+        return try decoder.decode(JourneyWithProgress.self, from: data)
     }
 }

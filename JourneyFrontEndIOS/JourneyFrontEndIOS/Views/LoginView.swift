@@ -1,11 +1,3 @@
-//
-//  LoginView.swift
-//  JourneyFrontEndIOS
-//
-//  Created by alaina riordan on 12/6/25.
-//
-
-
 import SwiftUI
 
 struct LoginView: View {
@@ -17,85 +9,164 @@ struct LoginView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Journey Login")
-                .font(.title)
-
-            TextField("Email", text: $email)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
-
-            SecureField("Password", text: $password)
-                .textFieldStyle(.roundedBorder)
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-
-            Button {
-                Task {
-                    await handleLogin()
+        ZStack {
+            // Dark blue gradient background
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    JourneyColors.background,
+                    Color(red: 0.1, green: 0.15, blue: 0.25)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with running emoji
+                VStack(spacing: 12) {
+                    Text("🏃")
+                        .font(.system(size: 64))
+                    
+                    Text("Journey")
+                        .font(.system(size: 40, weight: .bold))
+                        .foregroundColor(JourneyColors.textPrimary)
+                    
+                    Text("Track your running adventures")
+                        .font(.subheadline)
+                        .foregroundColor(JourneyColors.textSecondary)
                 }
-            } label: {
-                if isLoading {
-                    ProgressView()
-                } else {
-                    Text("Log In")
-                        .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 60)
+                
+                // Login Form
+                VStack(spacing: 20) {
+                    VStack(spacing: 16) {
+                        // Email Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Email", systemImage: "envelope.fill")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(JourneyColors.textPrimary)
+                            
+                            TextField("Enter your email", text: $email)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.emailAddress)
+                                .padding(14)
+                                .background(JourneyColors.cardBackground)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(JourneyColors.primary.opacity(0.3), lineWidth: 1)
+                                )
+                                .foregroundColor(JourneyColors.textPrimary)
+                        }
+                        
+                        // Password Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Password", systemImage: "lock.fill")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(JourneyColors.textPrimary)
+                            
+                            SecureField("Enter your password", text: $password)
+                                .padding(14)
+                                .background(JourneyColors.cardBackground)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(JourneyColors.primary.opacity(0.3), lineWidth: 1)
+                                )
+                        }
+                    }
+                    
+                    // Error Message
+                    if let errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(JourneyColors.accent)
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(JourneyColors.accent)
+                        }
+                        .padding(12)
+                        .background(JourneyColors.accent.opacity(0.15))
+                        .cornerRadius(8)
+                    }
+                    
+                    // Login Button
+                    Button {
+                        Task {
+                            await handleLogin()
+                        }
+                    } label: {
+                        if isLoading {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .tint(.white)
+                                Text("Logging in...")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(JourneyColors.primary.opacity(0.7))
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        } else {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.right")
+                                Text("Log In")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        JourneyColors.primary,
+                                        JourneyColors.secondary
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .fontWeight(.semibold)
+                            .cornerRadius(10)
+                        }
+                    }
+                    .disabled(isLoading || email.isEmpty || password.isEmpty)
                 }
+                .padding(24)
+                .background(JourneyColors.cardBackground)
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 8)
+                .padding(20)
+                
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
-
-            Spacer()
         }
-        .padding()
     }
 
+    @MainActor
     private func handleLogin() async {
-        guard !email.isEmpty, !password.isEmpty else {
-            await MainActor.run { errorMessage = "Please enter email and password." }
-            return
-        }
-
-        await MainActor.run {
-            isLoading = true
-            errorMessage = nil
-        }
-
-        print("[LoginView] handleLogin tapped for email=\(email)")
+        isLoading = true
+        errorMessage = nil
+        
         do {
             try await APIClient.shared.login(email: email, password: password)
-
-            // Debug: check token saved
-            let saved = UserDefaults.standard.string(forKey: "authToken")
-            if let s = saved {
-                let prefix = s.count > 6 ? String(s.prefix(6)) + "…" : s
-                print("[LoginView] token in UserDefaults after login: len=\(s.count) prefix=\(prefix)")
-            } else {
-                print("[LoginView] token NOT found in UserDefaults after login")
-            }
-
-            await MainActor.run {
-                appState.setLoggedIn(true)
-                password = ""
-                errorMessage = nil
-                isLoading = false
-            }
+            appState.setLoggedIn(true)
         } catch {
-            let message: String
-            if let apiErr = error as? APIError, let desc = apiErr.errorDescription {
-                message = desc
+            if let apiErr = error as? APIError {
+                errorMessage = apiErr.errorDescription ?? "Login failed"
             } else {
-                message = error.localizedDescription
+                errorMessage = error.localizedDescription
             }
-            await MainActor.run {
-                errorMessage = "Login failed: \(message)"
-                isLoading = false
-            }
-            print("[LoginView] login failed: \(message)")
         }
+        
+        isLoading = false
     }
+}
+
+#Preview {
+    LoginView()
+        .environmentObject(AppState())
 }
