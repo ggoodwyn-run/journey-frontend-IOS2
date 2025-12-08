@@ -34,6 +34,25 @@ struct JourneyCreateRequest: Encodable {
     let destLabel: String
     let name: String
     let totalDistanceMiles: Double
+    
+    // Coordinate fields for map display
+    let startLat: Double?
+    let startLng: Double?
+    let destLat: Double?
+    let destLng: Double?
+    
+    init(startCity: String, destCity: String, startLabel: String, destLabel: String, name: String, totalDistanceMiles: Double, startLat: Double? = nil, startLng: Double? = nil, destLat: Double? = nil, destLng: Double? = nil) {
+        self.startCity = startCity
+        self.destCity = destCity
+        self.startLabel = startLabel
+        self.destLabel = destLabel
+        self.name = name
+        self.totalDistanceMiles = totalDistanceMiles
+        self.startLat = startLat
+        self.startLng = startLng
+        self.destLat = destLat
+        self.destLng = destLng
+    }
 }
 
 struct JourneyCreateResponse: Decodable, Identifiable {
@@ -60,6 +79,22 @@ struct JourneyRead: Decodable, Identifiable, Hashable {
     let completedAt: Date?
     let createdAt: Date
     let updatedAt: Date
+    
+    // Coordinate fields from backend
+    let startLat: Double?
+    let startLng: Double?
+    let destLat: Double?
+    let destLng: Double?
+}
+
+// MARK: - Progress Location (from /journeys/{id}/progress-location)
+
+struct ProgressLocation: Decodable {
+    let journeyId: Int
+    let currentLat: Double
+    let currentLng: Double
+    let distanceCompletedMiles: Double
+    let percentComplete: Double
 }
 
 // MARK: - Predefined cities with distances
@@ -68,6 +103,8 @@ struct City: Identifiable, Hashable {
     let id: String
     let name: String
     let state: String
+    let lat: Double
+    let lng: Double
     
     var displayName: String {
         "\(name), \(state)"
@@ -82,24 +119,24 @@ let cityDistances: [String: [String: Double]] = [
 ]
 
 let predefinedCities: [City] = [
-    City(id: "charlotte", name: "Charlotte", state: "NC"),
-    City(id: "atlanta", name: "Atlanta", state: "GA"),
-    City(id: "nashville", name: "Nashville", state: "TN"),
-    City(id: "memphis", name: "Memphis", state: "TN"),
-    City(id: "miami", name: "Miami", state: "FL"),
-    City(id: "orlando", name: "Orlando", state: "FL"),
-    City(id: "austin", name: "Austin", state: "TX"),
-    City(id: "dallas", name: "Dallas", state: "TX"),
-    City(id: "houston", name: "Houston", state: "TX"),
-    City(id: "new_orleans", name: "New Orleans", state: "LA"),
-    City(id: "denver", name: "Denver", state: "CO"),
-    City(id: "phoenix", name: "Phoenix", state: "AZ"),
-    City(id: "los_angeles", name: "Los Angeles", state: "CA"),
-    City(id: "san_francisco", name: "San Francisco", state: "CA"),
-    City(id: "seattle", name: "Seattle", state: "WA"),
-    City(id: "portland", name: "Portland", state: "OR"),
-    City(id: "chicago", name: "Chicago", state: "IL"),
-    City(id: "new_york", name: "New York", state: "NY"),
-    City(id: "boston", name: "Boston", state: "MA"),
-    City(id: "philadelphia", name: "Philadelphia", state: "PA"),
+    City(id: "charlotte", name: "Charlotte", state: "NC", lat: 35.2271, lng: -80.8431),
+    City(id: "atlanta", name: "Atlanta", state: "GA", lat: 33.749, lng: -84.388),
+    City(id: "nashville", name: "Nashville", state: "TN", lat: 36.1627, lng: -86.7816),
+    City(id: "memphis", name: "Memphis", state: "TN", lat: 35.1495, lng: -90.049),
+    City(id: "miami", name: "Miami", state: "FL", lat: 25.7617, lng: -80.1918),
+    City(id: "orlando", name: "Orlando", state: "FL", lat: 28.5383, lng: -81.3792),
+    City(id: "austin", name: "Austin", state: "TX", lat: 30.2672, lng: -97.7431),
+    City(id: "dallas", name: "Dallas", state: "TX", lat: 32.7767, lng: -96.797),
+    City(id: "houston", name: "Houston", state: "TX", lat: 29.7604, lng: -95.3698),
+    City(id: "new_orleans", name: "New Orleans", state: "LA", lat: 29.9511, lng: -90.0715),
+    City(id: "denver", name: "Denver", state: "CO", lat: 39.7392, lng: -104.9903),
+    City(id: "phoenix", name: "Phoenix", state: "AZ", lat: 33.4484, lng: -112.074),
+    City(id: "los_angeles", name: "Los Angeles", state: "CA", lat: 34.0522, lng: -118.2437),
+    City(id: "san_francisco", name: "San Francisco", state: "CA", lat: 37.7749, lng: -122.4194),
+    City(id: "seattle", name: "Seattle", state: "WA", lat: 47.6062, lng: -122.3321),
+    City(id: "portland", name: "Portland", state: "OR", lat: 45.5152, lng: -122.6784),
+    City(id: "chicago", name: "Chicago", state: "IL", lat: 41.8781, lng: -87.6298),
+    City(id: "new_york", name: "New York", state: "NY", lat: 40.7128, lng: -74.006),
+    City(id: "boston", name: "Boston", state: "MA", lat: 42.3601, lng: -71.0589),
+    City(id: "philadelphia", name: "Philadelphia", state: "PA", lat: 39.9526, lng: -75.1652),
 ]

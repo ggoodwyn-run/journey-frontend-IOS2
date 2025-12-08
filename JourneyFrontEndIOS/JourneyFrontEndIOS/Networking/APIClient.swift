@@ -291,3 +291,19 @@ extension APIClient {
         return try decoder.decode(JourneyWithProgress.self, from: data)
     }
 }
+
+extension APIClient {
+    /// Fetch the interpolated progress location for a journey from the backend
+    func fetchProgressLocation(_ journeyId: Int) async throws -> ProgressLocation {
+        let request = try makeAuthedRequest(path: "api/v1/journeys/\(journeyId)/progress-location")
+        let session = sessionPreservingAuthorization(request.value(forHTTPHeaderField: "Authorization"))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if !(200...299).contains(http.statusCode) {
+            let bodyString = String(data: data, encoding: .utf8)
+            if http.statusCode == 401 { throw APIError.authenticationRequired(message: bodyString) }
+            throw APIError.serverError(statusCode: http.statusCode, message: bodyString)
+        }
+        return try decoder.decode(ProgressLocation.self, from: data)
+    }
+}

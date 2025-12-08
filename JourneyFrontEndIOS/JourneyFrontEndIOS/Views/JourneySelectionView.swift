@@ -208,13 +208,19 @@ struct JourneySelectionView: View {
             startLabel: startCity.displayName,
             destLabel: destCity.displayName,
             name: journeyName,
-            totalDistanceMiles: distance
+            totalDistanceMiles: distance,
+            startLat: startCity.lat,
+            startLng: startCity.lng,
+            destLat: destCity.lat,
+            destLng: destCity.lng
         )
 
         do {
             _ = try await APIClient.shared.createJourney(request)
+            // Notify that journey data changed so views can refresh
+            NotificationCenter.default.post(name: .journeyDataChanged, object: nil)
             onJourneyCreated?()
-            try await Task.sleep(nanoseconds: 500_000_000)
+            try await Task.sleep(nanoseconds: 300_000_000)
             dismiss()
         } catch {
             if let apiErr = error as? APIError, case .authenticationRequired = apiErr {
